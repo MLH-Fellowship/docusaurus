@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import React, {useState, useCallback, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import clsx from 'clsx';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import useThemeConfig from '../../utils/useThemeConfig';
@@ -22,14 +22,14 @@ import type {Props} from '@theme/DocSidebar';
 import styles from './styles.module.css';
 
 const MOBILE_TOGGLE_SIZE = 24;
-
-function usePrevious(value) {
-  const ref = useRef(value);
-  useEffect(() => {
-    ref.current = value;
-  }, [value]);
-  return ref.current;
-}
+//
+// function usePrevious(value) {
+//   const ref = useRef(value);
+//   useEffect(() => {
+//     ref.current = value;
+//   }, [value]);
+//   return ref.current;
+// }
 
 const isActiveSidebarItem = (item, activePath) => {
   if (item.type === 'link') {
@@ -53,83 +53,32 @@ function DocSidebarItemCategory({
   const {items, label} = item;
 
   const isActive = isActiveSidebarItem(item, activePath);
-  const wasActive = usePrevious(isActive);
 
   // active categories are always initialized as expanded
   // the default (item.collapsed) is only used for non-active categories
-  const [collapsed, setCollapsed] = useState(() => {
-    if (!collapsible) {
-      return false;
-    }
-    return isActive ? false : item.collapsed;
-  });
 
   const menuListRef = useRef<HTMLUListElement>(null);
-  const [menuListHeight, setMenuListHeight] = useState<string | undefined>(
-    undefined,
-  );
-  const handleMenuListHeight = (calc = true) => {
-    setMenuListHeight(
-      calc ? `${menuListRef.current?.scrollHeight}px` : undefined,
-    );
-  };
-
-  // If we navigate to a category, it should automatically expand itself
-  useEffect(() => {
-    const justBecameActive = isActive && !wasActive;
-    if (justBecameActive && collapsed) {
-      setCollapsed(false);
-    }
-  }, [isActive, wasActive, collapsed]);
-
-  const handleItemClick = useCallback(
-    (e) => {
-      e.preventDefault();
-
-      if (!menuListHeight) {
-        handleMenuListHeight();
-      }
-
-      setTimeout(() => setCollapsed((state) => !state), 100);
-    },
-    [menuListHeight],
-  );
 
   if (items.length === 0) {
     return null;
   }
 
   return (
-    <li
-      className={clsx('menu__list-item', {
-        'menu__list-item--collapsed': collapsed,
-      })}
-      key={label}>
+    <li className={clsx('menu__list-item')} key={label}>
       <a
-        className={clsx('menu__link', {
+        className={clsx('menu__link', styles.menuLinkTextCollapsible, {
           'menu__link--sublist': collapsible,
           'menu__link--active': collapsible && isActive,
           [styles.menuLinkText]: !collapsible,
         })}
-        onClick={collapsible ? handleItemClick : undefined}
         href={collapsible ? '#!' : undefined}
         {...props}>
         {label}
       </a>
-      <ul
-        className="menu__list"
-        ref={menuListRef}
-        style={{
-          height: menuListHeight,
-        }}
-        onTransitionEnd={() => {
-          if (!collapsed) {
-            handleMenuListHeight(false);
-          }
-        }}>
+      <ul className={`menu__list ${styles.menuDropdownList}`} ref={menuListRef}>
         {items.map((childItem) => (
           <DocSidebarItem
-            tabIndex={collapsed ? '-1' : '0'}
+            tabIndex="0"
             key={childItem.label}
             item={childItem}
             onItemClick={onItemClick}

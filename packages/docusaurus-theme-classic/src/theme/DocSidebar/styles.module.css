@@ -73,8 +73,20 @@
     cursor: initial;
   }
 
+  .menuDropdownList {
+    display: none;
+  }
+
+  .menuLinkTextCollapsible:focus + .menuDropdownList, .menuDropdownList:focus-within {
+    display: block;
+  }
+
   .menuLinkText:hover {
     background: none;
+  }
+
+  .menuLink {
+    display: none;
   }
 
   .menuWithAnnouncementBar {
