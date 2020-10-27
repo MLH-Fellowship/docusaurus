@@ -22,14 +22,6 @@ import type {Props} from '@theme/DocSidebar';
 import styles from './styles.module.css';
 
 const MOBILE_TOGGLE_SIZE = 24;
-//
-// function usePrevious(value) {
-//   const ref = useRef(value);
-//   useEffect(() => {
-//     ref.current = value;
-//   }, [value]);
-//   return ref.current;
-// }
 
 const isActiveSidebarItem = (item, activePath) => {
   if (item.type === 'link') {
@@ -54,9 +46,6 @@ function DocSidebarItemCategory({
 
   const isActive = isActiveSidebarItem(item, activePath);
 
-  // active categories are always initialized as expanded
-  // the default (item.collapsed) is only used for non-active categories
-
   const menuListRef = useRef<HTMLUListElement>(null);
 
   if (items.length === 0) {
@@ -65,28 +54,30 @@ function DocSidebarItemCategory({
 
   return (
     <li className={clsx('menu__list-item')} key={label}>
-      <a
-        className={clsx('menu__link', styles.menuLinkTextCollapsible, {
-          'menu__link--sublist': collapsible,
-          'menu__link--active': collapsible && isActive,
-          [styles.menuLinkText]: !collapsible,
-        })}
-        href={collapsible ? '#!' : undefined}
-        {...props}>
-        {label}
-      </a>
-      <ul className={`menu__list ${styles.menuDropdownList}`} ref={menuListRef}>
-        {items.map((childItem) => (
-          <DocSidebarItem
-            tabIndex="0"
-            key={childItem.label}
-            item={childItem}
-            onItemClick={onItemClick}
-            collapsible={collapsible}
-            activePath={activePath}
-          />
-        ))}
-      </ul>
+      <details>
+        <summary>
+          <p
+            className={clsx('menu__link', {
+              'menu__link--sublist': collapsible,
+              'menu__link--active': collapsible && isActive,
+              [styles.menuLinkText]: !collapsible,
+            })}
+            {...props}>
+            {label}
+          </p>
+        </summary>
+        <ul className="menu__list" ref={menuListRef}>
+          {items.map((childItem) => (
+            <DocSidebarItem
+              key={childItem.label}
+              item={childItem}
+              onItemClick={onItemClick}
+              collapsible={collapsible}
+              activePath={activePath}
+            />
+          ))}
+        </ul>
+      </details>
     </li>
   );
 }
