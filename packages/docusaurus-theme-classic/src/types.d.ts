@@ -55,6 +55,7 @@ declare module '@theme/CodeBlock' {
     readonly children: string;
     readonly className?: string;
     readonly metastring?: string;
+    readonly title?: string;
   };
 
   const CodeBlock: (props: Props) => JSX.Element;
@@ -87,6 +88,28 @@ declare module '@theme/DocSidebar' {
   export default DocSidebar;
 }
 
+declare module '@theme/DocSidebarItem' {
+  import type {PropSidebarItem} from '@docusaurus/plugin-content-docs-types';
+
+  type DocSidebarPropsBase = {
+    readonly activePath: string;
+    readonly collapsible?: boolean;
+    readonly onItemClick?: () => void;
+    readonly tabIndex?: number;
+  };
+
+  export type Props = DocSidebarPropsBase & {
+    readonly item: PropSidebarItem;
+  };
+  const DocSidebarItem: (props: Props) => JSX.Element;
+  export default DocSidebarItem;
+
+  export type DocSidebarItemsProps = DocSidebarPropsBase & {
+    readonly items: readonly PropSidebarItem[];
+  };
+  export const DocSidebarItems: (props: DocSidebarItemsProps) => JSX.Element;
+}
+
 declare module '@theme/DocVersionSuggestions' {
   const DocVersionSuggestions: () => JSX.Element;
   export default DocVersionSuggestions;
@@ -113,16 +136,7 @@ declare module '@theme/Heading' {
 
   const Heading: (Tag: HeadingType) => (props: Props) => JSX.Element;
   export default Heading;
-}
-
-declare module '@theme/hooks/useAnnouncementBar' {
-  export type useAnnouncementBarReturns = {
-    readonly isAnnouncementBarClosed: boolean;
-    readonly closeAnnouncementBar: () => void;
-  };
-
-  const useAnnouncementBar: () => useAnnouncementBarReturns;
-  export default useAnnouncementBar;
+  export const MainHeading: (props: Props) => JSX.Element;
 }
 
 declare module '@theme/hooks/useHideableNavbar' {
@@ -212,8 +226,6 @@ declare module '@theme/hooks/useUserPreferencesContext' {
   export type UserPreferencesContextProps = {
     tabGroupChoices: {readonly [groupId: string]: string};
     setTabGroupChoices: (groupId: string, newChoice: string) => void;
-    isAnnouncementBarClosed: boolean;
-    closeAnnouncementBar: () => void;
   };
 
   export default function useUserPreferencesContext(): UserPreferencesContextProps;
@@ -223,11 +235,12 @@ declare module '@theme/hooks/useWindowSize' {
   export const windowSizes: {
     desktop: 'desktop';
     mobile: 'mobile';
+    ssr: 'ssr';
   };
 
   export type WindowSize = keyof typeof windowSizes;
 
-  export default function useWindowSize(): WindowSize | undefined;
+  export default function useWindowSize(): WindowSize;
 }
 
 declare module '@theme/hooks/useKeyboardNavigation' {
@@ -248,6 +261,7 @@ declare module '@theme/Layout' {
     keywords?: string | string[];
     permalink?: string;
     wrapperClassName?: string;
+    pageClassName?: string;
     searchMetadatas?: {
       version?: string;
       tag?: string;
@@ -485,6 +499,13 @@ declare module '@theme/TOC' {
     readonly toc: readonly TOCItem[];
   };
 
+  export type TOCHeadingsProps = {
+    readonly toc: readonly TOCItem[];
+    readonly isChild?: boolean;
+  };
+
+  export const TOCHeadings: (props: HeadingsProps) => JSX.Element;
+
   const TOC: (props: TOCProps) => JSX.Element;
   export default TOC;
 }
@@ -500,11 +521,26 @@ declare module '@theme/TOCInline' {
   export default TOCInline;
 }
 
-declare module '@theme/Toggle' {
-  import type {ComponentProps} from 'react';
-  import type ReactToggle from 'react-toggle';
+declare module '@theme/TOCCollapsible' {
+  import type {TOCItem} from '@docusaurus/types';
 
-  export type Props = ComponentProps<typeof ReactToggle>;
+  export type TOCCollapsibleProps = {
+    readonly className?: string;
+    readonly toc: readonly TOCItem[];
+  };
+
+  const TOCCollapsible: (props: TOCCollapsibleProps) => JSX.Element;
+  export default TOCCollapsible;
+}
+
+declare module '@theme/Toggle' {
+  import type {SyntheticEvent} from 'react';
+
+  export type Props = {
+    readonly className?: string;
+    readonly checked: boolean;
+    readonly onChange: (e: SyntheticEvent) => void;
+  };
 
   const Toggle: (props: Props) => JSX.Element;
   export default Toggle;
@@ -592,4 +628,13 @@ declare module '@theme/IconLanguage' {
 
   const IconLanguage: (props: Props) => JSX.Element;
   export default IconLanguage;
+}
+
+declare module '@theme/IconExternalLink' {
+  import type {ComponentProps} from 'react';
+
+  export type Props = ComponentProps<'svg'>;
+
+  const IconExternalLink: (props: Props) => JSX.Element;
+  export default IconExternalLink;
 }

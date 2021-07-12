@@ -26,7 +26,7 @@ import {
   ValidationResult,
   ConfigureWebpackUtils,
 } from '@docusaurus/types';
-import {Configuration, Loader} from 'webpack';
+import {Configuration} from 'webpack';
 import admonitions from 'remark-admonitions';
 import {PluginOptionSchema} from './pluginOptionSchema';
 import {
@@ -192,7 +192,7 @@ export default function pluginContentPages(
     configureWebpack(
       _config: Configuration,
       isServer: boolean,
-      {getBabelLoader, getCacheLoader}: ConfigureWebpackUtils,
+      {getJSLoader}: ConfigureWebpackUtils,
     ) {
       const {
         rehypePlugins,
@@ -214,8 +214,7 @@ export default function pluginContentPages(
                 // Trailing slash is important, see https://github.com/facebook/docusaurus/pull/3970
                 .map(addTrailingPathSeparator),
               use: [
-                getCacheLoader(isServer),
-                getBabelLoader(isServer),
+                getJSLoader({isServer}),
                 {
                   loader: require.resolve('@docusaurus/mdx-loader'),
                   options: {
@@ -223,7 +222,6 @@ export default function pluginContentPages(
                     rehypePlugins,
                     beforeDefaultRehypePlugins,
                     beforeDefaultRemarkPlugins,
-                    keepContentTitle: true,
                     staticDir: path.join(siteDir, STATIC_DIR_NAME),
                     // Note that metadataPath must be the same/in-sync as
                     // the path from createData for each MDX.
@@ -248,7 +246,7 @@ export default function pluginContentPages(
                     // contentPath,
                   },
                 },
-              ].filter(Boolean) as Loader[],
+              ].filter(Boolean),
             },
           ],
         },

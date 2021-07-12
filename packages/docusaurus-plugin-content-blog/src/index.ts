@@ -44,7 +44,7 @@ import {
   OptionValidationContext,
   ValidationResult,
 } from '@docusaurus/types';
-import {Configuration, Loader} from 'webpack';
+import {Configuration} from 'webpack';
 import {
   generateBlogFeed,
   generateBlogPosts,
@@ -55,7 +55,7 @@ import {
 export default function pluginContentBlog(
   context: LoadContext,
   options: PluginOptions,
-): Plugin<BlogContent | null> {
+): Plugin<BlogContent> {
   if (options.admonitions) {
     options.remarkPlugins = options.remarkPlugins.concat([
       [admonitions, options.admonitions],
@@ -88,8 +88,6 @@ export default function pluginContentBlog(
   const aliasedSource = (source: string) =>
     `~blog/${posixPath(path.relative(pluginDataDirRoot, source))}`;
 
-  let blogPosts: BlogPost[] = [];
-
   return {
     name: 'docusaurus-plugin-content-blog',
 
@@ -116,9 +114,19 @@ export default function pluginContentBlog(
     async loadContent() {
       const {postsPerPage, routeBasePath} = options;
 
-      blogPosts = await generateBlogPosts(contentPaths, context, options);
+      const blogPosts: BlogPost[] = await generateBlogPosts(
+        contentPaths,
+        context,
+        options,
+      );
+
       if (!blogPosts.length) {
-        return null;
+        return {
+          blogPosts: [],
+          blogListPaginated: [],
+          blogTags: {},
+          blogTagsListPath: null,
+        };
       }
 
       // Colocate next and prev metadata.
@@ -241,7 +249,7 @@ export default function pluginContentBlog(
 
       const {addRoute, createData} = actions;
       const {
-        blogPosts: loadedBlogPosts,
+        blogPosts,
         blogListPaginated,
         blogTags,
         blogTagsListPath,
@@ -274,7 +282,7 @@ export default function pluginContentBlog(
 
       // Create routes for blog entries.
       await Promise.all(
-        loadedBlogPosts.map(async (blogPost) => {
+        blogPosts.map(async (blogPost) => {
           const {id, metadata} = blogPost;
           await createData(
             // Note that this created data path must be in sync with
@@ -288,7 +296,7 @@ export default function pluginContentBlog(
             component: blogPostComponent,
             exact: true,
             modules: {
-              sidebar: sidebarProp,
+              sidebar: aliasedSource(sidebarProp),
               content: metadata.source,
             },
           });
@@ -312,7 +320,7 @@ export default function pluginContentBlog(
             component: blogListComponent,
             exact: true,
             modules: {
-              sidebar: sidebarProp,
+              sidebar: aliasedSource(sidebarProp),
               items: items.map((postID) => {
                 // To tell routes.js this is an import and not a nested object to recurse.
                 return {
@@ -360,7 +368,7 @@ export default function pluginContentBlog(
             component: blogTagsPostsComponent,
             exact: true,
             modules: {
-              sidebar: sidebarProp,
+              sidebar: aliasedSource(sidebarProp),
               items: items.map((postID) => {
                 const metadata = blogItemsToMetadata[postID];
                 return {
@@ -391,7 +399,7 @@ export default function pluginContentBlog(
           component: blogTagsListComponent,
           exact: true,
           modules: {
-            sidebar: sidebarProp,
+            sidebar: aliasedSource(sidebarProp),
             tags: aliasedSource(tagsListPath),
           },
         });
@@ -401,7 +409,8 @@ export default function pluginContentBlog(
     configureWebpack(
       _config: Configuration,
       isServer: boolean,
-      {getBabelLoader, getCacheLoader}: ConfigureWebpackUtils,
+      {getJSLoader}: ConfigureWebpackUtils,
+      content,
     ) {
       const {
         rehypePlugins,
@@ -415,7 +424,7 @@ export default function pluginContentBlog(
         siteDir,
         contentPaths,
         truncateMarker,
-        sourceToPermalink: getSourceToPermalink(blogPosts),
+        sourceToPermalink: getSourceToPermalink(content.blogPosts),
         onBrokenMarkdownLink: (brokenMarkdownLink) => {
           if (onBrokenMarkdownLinks === 'ignore') {
             return;
@@ -441,8 +450,7 @@ export default function pluginContentBlog(
                 // Trailing slash is important, see https://github.com/facebook/docusaurus/pull/3970
                 .map(addTrailingPathSeparator),
               use: [
-                getCacheLoader(isServer),
-                getBabelLoader(isServer),
+                getJSLoader({isServer}),
                 {
                   loader: require.resolve('@docusaurus/mdx-loader'),
                   options: {
@@ -460,13 +468,16 @@ export default function pluginContentBlog(
                         `${docuHash(aliasedPath)}.json`,
                       );
                     },
+                    // For blog posts a title in markdown is always removed
+                    // Blog posts title are rendered separately
+                    removeContentTitle: true,
                   },
                 },
                 {
                   loader: path.resolve(__dirname, './markdownLoader.js'),
                   options: markdownLoaderOptions,
                 },
-              ].filter(Boolean) as Loader[],
+              ].filter(Boolean),
             },
           ],
         },
@@ -497,16 +508,21 @@ export default function pluginContentBlog(
           try {
             await fs.outputFile(feedPath, feedContent);
           } catch (err) {
-            throw new Error(`Generating ${feedType} feed failed: ${err}`);
+            throw new Error(`Generating ${feedType} feed failed: ${err}.`);
           }
         }),
       );
     },
 
-    injectHtmlTags() {
+    injectHtmlTags({content}) {
+      if (!content.blogPosts.length) {
+        return {};
+      }
+
       if (!options.feedOptions?.type) {
         return {};
       }
+
       const feedTypes = options.feedOptions.type;
       const {
         siteConfig: {title},

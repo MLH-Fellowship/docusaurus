@@ -13,6 +13,7 @@ import BlogPostItem from '@theme/BlogPostItem';
 import BlogListPaginator from '@theme/BlogListPaginator';
 import type {Props} from '@theme/BlogListPage';
 import BlogSidebar from '@theme/BlogSidebar';
+import {ThemeClassNames} from '@docusaurus/theme-common';
 
 function BlogListPage(props: Props): JSX.Element {
   const {metadata, items, sidebar} = props;
@@ -26,16 +27,17 @@ function BlogListPage(props: Props): JSX.Element {
     <Layout
       title={title}
       description={blogDescription}
-      wrapperClassName="blog-wrapper"
+      wrapperClassName={ThemeClassNames.wrapper.blogPages}
+      pageClassName={ThemeClassNames.page.blogListPage}
       searchMetadatas={{
         // assign unique search tag to exclude this page from search results!
         tag: 'blog_posts_list',
       }}>
       <div className="container margin-vert--lg">
         <div className="row">
-          <div className="col col--3">
+          <aside className="col col--3">
             <BlogSidebar sidebar={sidebar} />
-          </div>
+          </aside>
           <main className="col col--7">
             {items.map(({content: BlogPostContent}) => (
               <BlogPostItem

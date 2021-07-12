@@ -76,7 +76,7 @@ function createTestUtils({
     docFileSource: string,
     expectedMetadata: Optional<
       DocMetadataBase,
-      'source' | 'lastUpdatedBy' | 'lastUpdatedAt' | 'sidebar_label' | 'editUrl'
+      'source' | 'lastUpdatedBy' | 'lastUpdatedAt' | 'editUrl'
     >,
   ) {
     const docFile = await readDoc(docFileSource);
@@ -89,7 +89,6 @@ function createTestUtils({
     expect(metadata).toEqual({
       lastUpdatedBy: undefined,
       lastUpdatedAt: undefined,
-      sidebar_label: undefined,
       editUrl: undefined,
       source: path.posix.join(
         '@site',
@@ -177,6 +176,7 @@ describe('simple site', () => {
       version: 'current',
       id: 'foo/bar',
       unversionedId: 'foo/bar',
+      sourceDirName: 'foo',
       isDocsHomePage: false,
       permalink: '/docs/foo/bar',
       slug: '/foo/bar',
@@ -192,6 +192,7 @@ describe('simple site', () => {
       version: 'current',
       id: 'hello',
       unversionedId: 'hello',
+      sourceDirName: '.',
       isDocsHomePage: false,
       permalink: '/docs/hello',
       slug: '/hello',
@@ -200,6 +201,7 @@ describe('simple site', () => {
       frontMatter: {
         id: 'hello',
         title: 'Hello, World !',
+        sidebar_label: 'Hello sidebar_label',
       },
     });
   });
@@ -220,6 +222,7 @@ describe('simple site', () => {
       version: 'current',
       id: 'hello',
       unversionedId: 'hello',
+      sourceDirName: '.',
       isDocsHomePage: true,
       permalink: '/docs/',
       slug: '/',
@@ -228,6 +231,7 @@ describe('simple site', () => {
       frontMatter: {
         id: 'hello',
         title: 'Hello, World !',
+        sidebar_label: 'Hello sidebar_label',
       },
     });
   });
@@ -248,6 +252,7 @@ describe('simple site', () => {
       version: 'current',
       id: 'foo/bar',
       unversionedId: 'foo/bar',
+      sourceDirName: 'foo',
       isDocsHomePage: true,
       permalink: '/docs/',
       slug: '/',
@@ -279,6 +284,7 @@ describe('simple site', () => {
       version: 'current',
       id: 'foo/baz',
       unversionedId: 'foo/baz',
+      sourceDirName: 'foo',
       isDocsHomePage: false,
       permalink: '/docs/foo/bazSlug.html',
       slug: '/foo/bazSlug.html',
@@ -290,6 +296,7 @@ describe('simple site', () => {
         id: 'baz',
         slug: 'bazSlug.html',
         title: 'baz',
+        pagination_label: 'baz pagination_label',
       },
     });
   });
@@ -301,6 +308,7 @@ describe('simple site', () => {
       version: 'current',
       id: 'lorem',
       unversionedId: 'lorem',
+      sourceDirName: '.',
       isDocsHomePage: false,
       permalink: '/docs/lorem',
       slug: '/lorem',
@@ -336,6 +344,7 @@ describe('simple site', () => {
       version: 'current',
       id: 'foo/baz',
       unversionedId: 'foo/baz',
+      sourceDirName: 'foo',
       isDocsHomePage: false,
       permalink: '/docs/foo/bazSlug.html',
       slug: '/foo/bazSlug.html',
@@ -346,6 +355,7 @@ describe('simple site', () => {
         id: 'baz',
         slug: 'bazSlug.html',
         title: 'baz',
+        pagination_label: 'baz pagination_label',
       },
     });
 
@@ -378,6 +388,7 @@ describe('simple site', () => {
       version: 'current',
       id: 'lorem',
       unversionedId: 'lorem',
+      sourceDirName: '.',
       isDocsHomePage: false,
       permalink: '/docs/lorem',
       slug: '/lorem',
@@ -444,7 +455,7 @@ describe('simple site', () => {
         }),
       );
     }).toThrowErrorMatchingInlineSnapshot(
-      `"Document id [Hello/world] cannot include \\"/\\"."`,
+      `"Document id \\"Hello/world\\" cannot include slash."`,
     );
   });
 
@@ -549,6 +560,7 @@ describe('versioned site', () => {
     await currentVersionTestUtils.testMeta(path.join('foo', 'bar.md'), {
       id: 'foo/bar',
       unversionedId: 'foo/bar',
+      sourceDirName: 'foo',
       isDocsHomePage: false,
       permalink: '/docs/next/foo/barSlug',
       slug: '/foo/barSlug',
@@ -560,6 +572,7 @@ describe('versioned site', () => {
     await currentVersionTestUtils.testMeta(path.join('hello.md'), {
       id: 'hello',
       unversionedId: 'hello',
+      sourceDirName: '.',
       isDocsHomePage: false,
       permalink: '/docs/next/hello',
       slug: '/hello',
@@ -576,6 +589,7 @@ describe('versioned site', () => {
     await version100TestUtils.testMeta(path.join('foo', 'bar.md'), {
       id: 'version-1.0.0/foo/bar',
       unversionedId: 'foo/bar',
+      sourceDirName: 'foo',
       isDocsHomePage: false,
       permalink: '/docs/1.0.0/foo/barSlug',
       slug: '/foo/barSlug',
@@ -587,6 +601,7 @@ describe('versioned site', () => {
     await version100TestUtils.testMeta(path.join('hello.md'), {
       id: 'version-1.0.0/hello',
       unversionedId: 'hello',
+      sourceDirName: '.',
       isDocsHomePage: false,
       permalink: '/docs/1.0.0/hello',
       slug: '/hello',
@@ -600,6 +615,7 @@ describe('versioned site', () => {
     await version101TestUtils.testMeta(path.join('foo', 'bar.md'), {
       id: 'version-1.0.1/foo/bar',
       unversionedId: 'foo/bar',
+      sourceDirName: 'foo',
       isDocsHomePage: false,
       permalink: '/docs/foo/bar',
       slug: '/foo/bar',
@@ -611,6 +627,7 @@ describe('versioned site', () => {
     await version101TestUtils.testMeta(path.join('hello.md'), {
       id: 'version-1.0.1/hello',
       unversionedId: 'hello',
+      sourceDirName: '.',
       isDocsHomePage: false,
       permalink: '/docs/hello',
       slug: '/hello',
@@ -701,6 +718,7 @@ describe('versioned site', () => {
     await testUtilsLocal.testMeta(path.join('hello.md'), {
       id: 'version-1.0.0/hello',
       unversionedId: 'hello',
+      sourceDirName: '.',
       isDocsHomePage: false,
       permalink: '/docs/1.0.0/hello',
       slug: '/hello',
@@ -741,6 +759,7 @@ describe('versioned site', () => {
     await testUtilsLocal.testMeta(path.join('hello.md'), {
       id: 'version-1.0.0/hello',
       unversionedId: 'hello',
+      sourceDirName: '.',
       isDocsHomePage: false,
       permalink: '/docs/1.0.0/hello',
       slug: '/hello',
@@ -773,6 +792,7 @@ describe('versioned site', () => {
     await testUtilsLocal.testMeta(path.join('hello.md'), {
       id: 'version-1.0.0/hello',
       unversionedId: 'hello',
+      sourceDirName: '.',
       isDocsHomePage: false,
       permalink: '/docs/1.0.0/hello',
       slug: '/hello',
@@ -806,6 +826,7 @@ describe('versioned site', () => {
     await testUtilsLocal.testMeta(path.join('hello.md'), {
       id: 'version-1.0.0/hello',
       unversionedId: 'hello',
+      sourceDirName: '.',
       isDocsHomePage: false,
       permalink: '/fr/docs/1.0.0/hello',
       slug: '/hello',
@@ -840,6 +861,7 @@ describe('versioned site', () => {
     await testUtilsLocal.testMeta(path.join('hello.md'), {
       id: 'version-1.0.0/hello',
       unversionedId: 'hello',
+      sourceDirName: '.',
       isDocsHomePage: false,
       permalink: '/fr/docs/1.0.0/hello',
       slug: '/hello',

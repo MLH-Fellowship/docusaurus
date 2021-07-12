@@ -5,29 +5,37 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import {Joi} from '@docusaurus/utils-validation';
+/* eslint-disable camelcase */
 
-// TODO complete this frontmatter + add unit tests
-type DocFrontMatter = {
-  id?: string;
-  title?: string;
-  description?: string;
-  slug?: string;
-  sidebar_label?: string;
-  custom_edit_url?: string;
-};
+import {
+  JoiFrontMatter as Joi, // Custom instance for frontmatter
+  URISchema,
+  validateFrontMatter,
+} from '@docusaurus/utils-validation';
+import {DocFrontMatter} from './types';
 
+// NOTE: we don't add any default value on purpose here
+// We don't want default values to magically appear in doc metadatas and props
+// While the user did not provide those values explicitly
+// We use default values in code instead
 const DocFrontMatterSchema = Joi.object<DocFrontMatter>({
   id: Joi.string(),
-  title: Joi.string(),
-  description: Joi.string(),
+  title: Joi.string().allow(''), // see https://github.com/facebook/docusaurus/issues/4591#issuecomment-822372398
+  hide_title: Joi.boolean(),
+  hide_table_of_contents: Joi.boolean(),
+  keywords: Joi.array().items(Joi.string().required()),
+  image: URISchema,
+  description: Joi.string().allow(''), // see  https://github.com/facebook/docusaurus/issues/4591#issuecomment-822372398
   slug: Joi.string(),
   sidebar_label: Joi.string(),
-  custom_edit_url: Joi.string().allow(null),
+  sidebar_position: Joi.number(),
+  pagination_label: Joi.string(),
+  custom_edit_url: URISchema.allow('', null),
+  parse_number_prefixes: Joi.boolean(),
 }).unknown();
 
-export function assertDocFrontMatter(
+export function validateDocFrontMatter(
   frontMatter: Record<string, unknown>,
-): asserts frontMatter is DocFrontMatter {
-  Joi.attempt(frontMatter, DocFrontMatterSchema);
+): DocFrontMatter {
+  return validateFrontMatter(frontMatter, DocFrontMatterSchema);
 }

@@ -14,8 +14,18 @@ import {
   collectSidebarCategories,
   collectSidebarLinks,
   transformSidebarItems,
+  processSidebars,
+  DefaultSidebars,
+  DisabledSidebars,
 } from '../sidebars';
-import {Sidebar, Sidebars} from '../types';
+import {
+  Sidebar,
+  SidebarItem,
+  SidebarItemsGenerator,
+  Sidebars,
+  UnprocessedSidebars,
+} from '../types';
+import {DefaultSidebarItemsGenerator} from '../sidebarItemsGenerator';
 
 /* eslint-disable global-require, import/no-dynamic-require */
 
@@ -50,7 +60,7 @@ describe('loadSidebars', () => {
       'sidebars-category-wrong-items.json',
     );
     expect(() => loadSidebars(sidebarPath)).toThrowErrorMatchingInlineSnapshot(
-      `"Error loading {\\"type\\":\\"category\\",\\"label\\":\\"Category Label\\",\\"items\\":\\"doc1\\"}. \\"items\\" must be an array."`,
+      `"Error loading {\\"type\\":\\"category\\",\\"label\\":\\"Category Label\\",\\"items\\":\\"doc1\\"}: \\"items\\" must be an array."`,
     );
   });
 
@@ -60,7 +70,7 @@ describe('loadSidebars', () => {
       'sidebars-category-wrong-label.json',
     );
     expect(() => loadSidebars(sidebarPath)).toThrowErrorMatchingInlineSnapshot(
-      `"Error loading {\\"type\\":\\"category\\",\\"label\\":true,\\"items\\":[\\"doc1\\"]}. \\"label\\" must be a string."`,
+      `"Error loading {\\"type\\":\\"category\\",\\"label\\":true,\\"items\\":[\\"doc1\\"]}: \\"label\\" must be a string."`,
     );
   });
 
@@ -70,7 +80,7 @@ describe('loadSidebars', () => {
       'sidebars-doc-id-not-string.json',
     );
     expect(() => loadSidebars(sidebarPath)).toThrowErrorMatchingInlineSnapshot(
-      `"Error loading {\\"type\\":\\"doc\\",\\"id\\":[\\"doc1\\"]}. \\"id\\" must be a string."`,
+      `"Error loading {\\"type\\":\\"doc\\",\\"id\\":[\\"doc1\\"]}: \\"id\\" must be a string."`,
     );
   });
 
@@ -92,22 +102,23 @@ describe('loadSidebars', () => {
   test('sidebars link wrong label', async () => {
     const sidebarPath = path.join(fixtureDir, 'sidebars-link-wrong-label.json');
     expect(() => loadSidebars(sidebarPath)).toThrowErrorMatchingInlineSnapshot(
-      `"Error loading {\\"type\\":\\"link\\",\\"label\\":false,\\"href\\":\\"https://github.com\\"}. \\"label\\" must be a string."`,
+      `"Error loading {\\"type\\":\\"link\\",\\"label\\":false,\\"href\\":\\"https://github.com\\"}: \\"label\\" must be a string."`,
     );
   });
 
   test('sidebars link wrong href', async () => {
     const sidebarPath = path.join(fixtureDir, 'sidebars-link-wrong-href.json');
     expect(() => loadSidebars(sidebarPath)).toThrowErrorMatchingInlineSnapshot(
-      `"Error loading {\\"type\\":\\"link\\",\\"label\\":\\"GitHub\\",\\"href\\":[\\"example.com\\"]}. \\"href\\" must be a string."`,
+      `"Error loading {\\"type\\":\\"link\\",\\"label\\":\\"GitHub\\",\\"href\\":[\\"example.com\\"]}: \\"href\\" must be a string."`,
     );
   });
 
   test('sidebars with unknown sidebar item type', async () => {
     const sidebarPath = path.join(fixtureDir, 'sidebars-unknown-type.json');
-    expect(() => loadSidebars(sidebarPath)).toThrowErrorMatchingInlineSnapshot(
-      `"Unknown sidebar item type [superman]. Sidebar item={\\"type\\":\\"superman\\"} "`,
-    );
+    expect(() => loadSidebars(sidebarPath)).toThrowErrorMatchingInlineSnapshot(`
+      "Unknown sidebar item type \\"superman\\". Sidebar item is {\\"type\\":\\"superman\\"}.
+      "
+    `);
   });
 
   test('sidebars with known sidebar item type but wrong field', async () => {
@@ -118,35 +129,15 @@ describe('loadSidebars', () => {
   });
 
   test('unexisting path', () => {
-    /*
-    expect(() => loadSidebars('badpath')).toThrowErrorMatchingInlineSnapshot(
-      `"No sidebar file exist at path: badpath"`,
-    );
-     */
-    // See https://github.com/facebook/docusaurus/issues/3366
-    expect(loadSidebars('badpath')).toEqual({});
+    expect(loadSidebars('badpath')).toEqual(DisabledSidebars);
   });
 
   test('undefined path', () => {
-    expect(() =>
-      loadSidebars(
-        // @ts-expect-error: bad arg
-        undefined,
-      ),
-    ).toThrowErrorMatchingInlineSnapshot(
-      `"sidebarFilePath not provided: undefined"`,
-    );
+    expect(loadSidebars(undefined)).toEqual(DefaultSidebars);
   });
 
-  test('null path', () => {
-    expect(() =>
-      loadSidebars(
-        // @ts-expect-error: bad arg
-        null,
-      ),
-    ).toThrowErrorMatchingInlineSnapshot(
-      `"sidebarFilePath not provided: null"`,
-    );
+  test('literal false path', () => {
+    expect(loadSidebars(false)).toEqual(DisabledSidebars);
   });
 
   test('sidebars with category.collapsed property', async () => {
@@ -440,6 +431,134 @@ describe('transformSidebarItems', () => {
         ],
       },
     ]);
+  });
+});
+
+describe('processSidebars', () => {
+  const StaticGeneratedSidebarSlice: SidebarItem[] = [
+    {type: 'doc', id: 'doc-generated-id-1'},
+    {type: 'doc', id: 'doc-generated-id-2'},
+  ];
+
+  const StaticSidebarItemsGenerator: SidebarItemsGenerator = jest.fn(
+    async () => {
+      return StaticGeneratedSidebarSlice;
+    },
+  );
+
+  async function testProcessSidebars(unprocessedSidebars: UnprocessedSidebars) {
+    return processSidebars({
+      sidebarItemsGenerator: StaticSidebarItemsGenerator,
+      unprocessedSidebars,
+      docs: [],
+      // @ts-expect-error: useless for this test
+      version: {},
+    });
+  }
+
+  test('let sidebars without autogenerated items untouched', async () => {
+    const unprocessedSidebars: UnprocessedSidebars = {
+      someSidebar: [
+        {type: 'doc', id: 'doc1'},
+        {
+          type: 'category',
+          collapsed: false,
+          items: [{type: 'doc', id: 'doc2'}],
+          label: 'Category',
+        },
+        {type: 'link', href: 'https://facebook.com', label: 'FB'},
+      ],
+      secondSidebar: [
+        {type: 'doc', id: 'doc3'},
+        {type: 'link', href: 'https://instagram.com', label: 'IG'},
+        {
+          type: 'category',
+          collapsed: false,
+          items: [{type: 'doc', id: 'doc4'}],
+          label: 'Category',
+        },
+      ],
+    };
+
+    const processedSidebar = await testProcessSidebars(unprocessedSidebars);
+    expect(processedSidebar).toEqual(unprocessedSidebars);
+  });
+
+  test('replace autogenerated items by generated sidebars slices', async () => {
+    const unprocessedSidebars: UnprocessedSidebars = {
+      someSidebar: [
+        {type: 'doc', id: 'doc1'},
+        {
+          type: 'category',
+          collapsed: false,
+          items: [
+            {type: 'doc', id: 'doc2'},
+            {type: 'autogenerated', dirName: 'dir1'},
+          ],
+          label: 'Category',
+        },
+        {type: 'link', href: 'https://facebook.com', label: 'FB'},
+      ],
+      secondSidebar: [
+        {type: 'doc', id: 'doc3'},
+        {type: 'autogenerated', dirName: 'dir2'},
+        {type: 'link', href: 'https://instagram.com', label: 'IG'},
+        {type: 'autogenerated', dirName: 'dir3'},
+        {
+          type: 'category',
+          collapsed: false,
+          items: [{type: 'doc', id: 'doc4'}],
+          label: 'Category',
+        },
+      ],
+    };
+
+    const processedSidebar = await testProcessSidebars(unprocessedSidebars);
+
+    expect(StaticSidebarItemsGenerator).toHaveBeenCalledTimes(3);
+    expect(StaticSidebarItemsGenerator).toHaveBeenCalledWith({
+      defaultSidebarItemsGenerator: DefaultSidebarItemsGenerator,
+      item: {type: 'autogenerated', dirName: 'dir1'},
+      docs: [],
+      version: {},
+    });
+    expect(StaticSidebarItemsGenerator).toHaveBeenCalledWith({
+      defaultSidebarItemsGenerator: DefaultSidebarItemsGenerator,
+      item: {type: 'autogenerated', dirName: 'dir2'},
+      docs: [],
+      version: {},
+    });
+    expect(StaticSidebarItemsGenerator).toHaveBeenCalledWith({
+      defaultSidebarItemsGenerator: DefaultSidebarItemsGenerator,
+      item: {type: 'autogenerated', dirName: 'dir3'},
+      docs: [],
+      version: {},
+    });
+
+    expect(processedSidebar).toEqual({
+      someSidebar: [
+        {type: 'doc', id: 'doc1'},
+        {
+          type: 'category',
+          collapsed: false,
+          items: [{type: 'doc', id: 'doc2'}, ...StaticGeneratedSidebarSlice],
+          label: 'Category',
+        },
+        {type: 'link', href: 'https://facebook.com', label: 'FB'},
+      ],
+      secondSidebar: [
+        {type: 'doc', id: 'doc3'},
+        ...StaticGeneratedSidebarSlice,
+        {type: 'link', href: 'https://instagram.com', label: 'IG'},
+        ...StaticGeneratedSidebarSlice,
+        {
+          type: 'category',
+          collapsed: false,
+          items: [{type: 'doc', id: 'doc4'}],
+          label: 'Category',
+        },
+      ],
+    } as Sidebars);
   });
 });
 

@@ -5,8 +5,9 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-export {
-  useThemeConfig,
+export {useThemeConfig} from './utils/useThemeConfig';
+
+export type {
   ThemeConfig,
   Navbar,
   NavbarItem,
@@ -16,7 +17,11 @@ export {
   FooterLinkItem,
 } from './utils/useThemeConfig';
 
+export {createStorageSlot, listStorageKeys} from './utils/storageUtils';
+
 export {useAlternatePageUtils} from './utils/useAlternatePageUtils';
+
+export {parseCodeBlockTitle} from './utils/codeBlockUtils';
 
 export {docVersionSearchTag, DEFAULT_SEARCH_TAG} from './utils/searchUtils';
 
@@ -28,9 +33,33 @@ export {useTitleFormatter} from './utils/generalUtils';
 
 export {usePluralForm} from './utils/usePluralForm';
 
+export {useLocationChange} from './utils/useLocationChange';
+
+export {usePrevious} from './utils/usePrevious';
+
+export {useCollapsible, Collapsible} from './utils/useCollapsible';
+export type {
+  UseCollapsibleConfig,
+  UseCollapsibleReturns,
+} from './utils/useCollapsible';
+
+export {
+  MobileSecondaryMenuProvider,
+  MobileSecondaryMenuFiller,
+  useMobileSecondaryMenuRenderer,
+} from './utils/mobileSecondaryMenu';
+export type {MobileSecondaryMenuComponent} from './utils/mobileSecondaryMenu';
+
 export {
   useDocsPreferredVersion,
   useDocsPreferredVersionByPluginId,
 } from './utils/docsPreferredVersion/useDocsPreferredVersion';
 
 export {DocsPreferredVersionContextProvider} from './utils/docsPreferredVersion/DocsPreferredVersionProvider';
+
+export {ThemeClassNames} from './utils/ThemeClassNames';
+
+export {
+  AnnouncementBarProvider,
+  useAnnouncementBar,
+} from './utils/announcementBarUtils';

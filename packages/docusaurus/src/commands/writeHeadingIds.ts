@@ -37,7 +37,7 @@ export function transformMarkdownHeadingLine(
   slugger: GithubSlugger,
 ): string {
   if (!line.startsWith('#')) {
-    throw new Error(`Line is not a markdown heading: ${line}`);
+    throw new Error(`Line is not a Markdown heading: ${line}.`);
   }
 
   const parsedHeading = parseMarkdownHeadingId(line);
@@ -53,7 +53,8 @@ export function transformMarkdownLine(
   line: string,
   slugger: GithubSlugger,
 ): string {
-  if (line.startsWith('#')) {
+  // Ignore h1 headings on purpose, as we don't create anchor links for those
+  if (line.startsWith('##')) {
     return transformMarkdownHeadingLine(line, slugger);
   } else {
     return line;
@@ -117,7 +118,7 @@ export default async function writeHeadingIds(siteDir: string): Promise<void> {
 
   if (pathsModified.length) {
     console.log(
-      chalk.green(`Heading ids added to markdown files (${
+      chalk.green(`Heading ids added to Markdown files (${
         pathsModified.length
       }/${markdownFiles.length} files):
 - ${pathsModified.join('\n- ')}`),
@@ -125,7 +126,7 @@ export default async function writeHeadingIds(siteDir: string): Promise<void> {
   } else {
     console.log(
       chalk.yellow(
-        `${markdownFiles.length} markdown files already have explicit heading ids`,
+        `${markdownFiles.length} Markdown files already have explicit heading ids.`,
       ),
     );
   }

@@ -15,6 +15,7 @@ export type NavbarItem = {
   type?: string | undefined;
   items?: NavbarItem[];
   label?: string;
+  position?: 'left' | 'right';
 };
 
 export type NavbarLogo = {
@@ -101,6 +102,8 @@ export type ThemeConfig = {
   footer?: Footer;
   hideableSidebar: boolean;
   image: string;
+  metadatas: Array<Record<string, string>>;
+  sidebarCollapsible: boolean;
 };
 
 export function useThemeConfig(): ThemeConfig {

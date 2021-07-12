@@ -15,13 +15,19 @@ import {
 import {OptionValidationContext, ValidationResult} from '@docusaurus/types';
 import chalk from 'chalk';
 import admonitions from 'remark-admonitions';
+import {DefaultSidebarItemsGenerator} from './sidebarItemsGenerator';
+import {
+  DefaultNumberPrefixParser,
+  DisabledNumberPrefixParser,
+} from './numberPrefix';
 
-export const DEFAULT_OPTIONS: Omit<PluginOptions, 'id'> = {
+export const DEFAULT_OPTIONS: Omit<PluginOptions, 'id' | 'sidebarPath'> = {
   path: 'docs', // Path to data on filesystem, relative to site dir.
   routeBasePath: 'docs', // URL Route.
   homePageId: undefined, // TODO remove soon, deprecated
   include: ['**/*.{md,mdx}'], // Extensions to include.
-  sidebarPath: 'sidebars.json', // Path to sidebar configuration for showing a list of markdown pages.
+  sidebarItemsGenerator: DefaultSidebarItemsGenerator,
+  numberPrefixParser: DefaultNumberPrefixParser,
   docLayoutComponent: '@theme/DocPage',
   docItemComponent: '@theme/DocItem',
   remarkPlugins: [],
@@ -31,7 +37,6 @@ export const DEFAULT_OPTIONS: Omit<PluginOptions, 'id'> = {
   showLastUpdateTime: false,
   showLastUpdateAuthor: false,
   admonitions: {},
-  excludeNextVersionDocs: false,
   includeCurrentVersion: true,
   disableVersioning: false,
   lastVersion: undefined,
@@ -43,6 +48,7 @@ export const DEFAULT_OPTIONS: Omit<PluginOptions, 'id'> = {
 const VersionOptionsSchema = Joi.object({
   path: Joi.string().allow('').optional(),
   label: Joi.string().optional(),
+  banner: Joi.string().equal('none', 'unreleased', 'unmaintained').optional(),
 });
 
 const VersionsOptionsSchema = Joi.object()
@@ -60,7 +66,24 @@ export const OptionsSchema = Joi.object({
     .default(DEFAULT_OPTIONS.routeBasePath),
   homePageId: Joi.string().optional(),
   include: Joi.array().items(Joi.string()).default(DEFAULT_OPTIONS.include),
-  sidebarPath: Joi.string().allow('').default(DEFAULT_OPTIONS.sidebarPath),
+  sidebarPath: Joi.alternatives().try(
+    Joi.boolean().invalid(true),
+    Joi.string(),
+  ),
+  sidebarItemsGenerator: Joi.function().default(
+    () => DEFAULT_OPTIONS.sidebarItemsGenerator,
+  ),
+  numberPrefixParser: Joi.alternatives()
+    .try(
+      Joi.function(),
+      // Convert boolean values to functions
+      Joi.alternatives().conditional(Joi.boolean(), {
+        then: Joi.custom((val) =>
+          val ? DefaultNumberPrefixParser : DisabledNumberPrefixParser,
+        ),
+      }),
+    )
+    .default(() => DEFAULT_OPTIONS.numberPrefixParser),
   docLayoutComponent: Joi.string().default(DEFAULT_OPTIONS.docLayoutComponent),
   docItemComponent: Joi.string().default(DEFAULT_OPTIONS.docItemComponent),
   remarkPlugins: RemarkPluginsSchema.default(DEFAULT_OPTIONS.remarkPlugins),
@@ -71,13 +94,12 @@ export const OptionsSchema = Joi.object({
   beforeDefaultRehypePlugins: RehypePluginsSchema.default(
     DEFAULT_OPTIONS.beforeDefaultRehypePlugins,
   ),
-  admonitions: AdmonitionsSchema.default(DEFAULT_OPTIONS.admonitions),
+  admonitions: Joi.alternatives()
+    .try(AdmonitionsSchema, Joi.boolean().invalid(true))
+    .default(DEFAULT_OPTIONS.admonitions),
   showLastUpdateTime: Joi.bool().default(DEFAULT_OPTIONS.showLastUpdateTime),
   showLastUpdateAuthor: Joi.bool().default(
     DEFAULT_OPTIONS.showLastUpdateAuthor,
-  ),
-  excludeNextVersionDocs: Joi.bool().default(
-    DEFAULT_OPTIONS.excludeNextVersionDocs,
   ),
   includeCurrentVersion: Joi.bool().default(
     DEFAULT_OPTIONS.includeCurrentVersion,
@@ -100,17 +122,6 @@ export function validateOptions({
         `The docs plugin option homePageId=${options.homePageId} is deprecated. To make a doc the "home", prefer frontmatter: "slug: /"`,
       ),
     );
-  }
-
-  if (typeof options.excludeNextVersionDocs !== 'undefined') {
-    console.log(
-      chalk.red(
-        `The docs plugin option excludeNextVersionDocs=${
-          options.excludeNextVersionDocs
-        } is deprecated. Use the includeCurrentVersion=${!options.excludeNextVersionDocs} option instead!"`,
-      ),
-    );
-    options.includeCurrentVersion = !options.excludeNextVersionDocs;
   }
 
   const normalizedOptions = validate(OptionsSchema, options);

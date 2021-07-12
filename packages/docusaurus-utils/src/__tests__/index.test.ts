@@ -8,8 +8,6 @@
 import path from 'path';
 import {
   fileToPath,
-  simpleHash,
-  docuHash,
   genComponentName,
   genChunkName,
   idx,
@@ -23,7 +21,6 @@ import {
   removeTrailingSlash,
   removeSuffix,
   removePrefix,
-  getFilePathForRoutePath,
   addLeadingSlash,
   getElementsAround,
   mergeTranslations,
@@ -38,7 +35,7 @@ import {sum} from 'lodash';
 
 describe('load utils', () => {
   test('aliasedSitePath', () => {
-    const asserts = {
+    const asserts: Record<string, string> = {
       'user/website/docs/asd.md': '@site/docs/asd.md',
       'user/website/versioned_docs/foo/bar.md':
         '@site/versioned_docs/foo/bar.md',
@@ -51,23 +48,8 @@ describe('load utils', () => {
     });
   });
 
-  test('posixPath', () => {
-    const asserts = {
-      'c:/aaaa\\bbbb': 'c:/aaaa/bbbb',
-      'c:\\aaaa\\bbbb\\★': 'c:\\aaaa\\bbbb\\★',
-      '\\\\?\\c:\\aaaa\\bbbb': '\\\\?\\c:\\aaaa\\bbbb',
-      'c:\\aaaa\\bbbb': 'c:/aaaa/bbbb',
-      'foo\\bar': 'foo/bar',
-      'foo\\bar/lol': 'foo/bar/lol',
-      'website\\docs/**/*.{md,mdx}': 'website/docs/**/*.{md,mdx}',
-    };
-    Object.keys(asserts).forEach((file) => {
-      expect(posixPath(file)).toBe(asserts[file]);
-    });
-  });
-
   test('genComponentName', () => {
-    const asserts = {
+    const asserts: Record<string, string> = {
       '/': 'index',
       '/foo-bar': 'FooBar096',
       '/foo/bar': 'FooBar1Df',
@@ -83,39 +65,8 @@ describe('load utils', () => {
     });
   });
 
-  test('simpleHash', () => {
-    const asserts = {
-      '': 'd41',
-      '/foo-bar': '096',
-      '/foo/bar': '1df',
-      '/endi/lie': '9fa',
-      '/endi-lie': 'fd3',
-      '/yangshun/tay': '48d',
-      '/yangshun-tay': 'f3b',
-    };
-    Object.keys(asserts).forEach((file) => {
-      expect(simpleHash(file, 3)).toBe(asserts[file]);
-    });
-  });
-
-  test('docuHash', () => {
-    const asserts = {
-      '': '-d41',
-      '/': 'index',
-      '/foo-bar': 'foo-bar-096',
-      '/foo/bar': 'foo-bar-1df',
-      '/endi/lie': 'endi-lie-9fa',
-      '/endi-lie': 'endi-lie-fd3',
-      '/yangshun/tay': 'yangshun-tay-48d',
-      '/yangshun-tay': 'yangshun-tay-f3b',
-    };
-    Object.keys(asserts).forEach((file) => {
-      expect(docuHash(file)).toBe(asserts[file]);
-    });
-  });
-
   test('fileToPath', () => {
-    const asserts = {
+    const asserts: Record<string, string> = {
       'index.md': '/',
       'hello/index.md': '/hello/',
       'foo.md': '/foo',
@@ -166,7 +117,7 @@ describe('load utils', () => {
   });
 
   test('genChunkName', () => {
-    const firstAssert = {
+    const firstAssert: Record<string, string> = {
       '/docs/adding-blog': 'docs-adding-blog-062',
       '/docs/versioning': 'docs-versioning-8a8',
       '/': 'index',
@@ -186,7 +137,7 @@ describe('load utils', () => {
     );
 
     // Even with same preferred name, still different chunk name for different path
-    const secondAssert = {
+    const secondAssert: Record<string, string> = {
       '/blog/1': 'blog-85-f-089',
       '/blog/2': 'blog-353-489',
     };
@@ -195,7 +146,7 @@ describe('load utils', () => {
     });
 
     // Only generate short unique id
-    const thirdAssert = {
+    const thirdAssert: Record<string, string> = {
       a: '0cc175b9',
       b: '92eb5ffe',
       c: '4a8a08f0',
@@ -245,7 +196,9 @@ describe('load utils', () => {
     });
     expect(idx(obj, ['translation', 'enabled'])).toEqual(true);
     expect(
-      idx(obj, ['translation', variable]).map((lang) => lang.tag),
+      idx(obj, ['translation', variable]).map(
+        (lang: {tag: string}) => lang.tag,
+      ),
     ).toEqual(['en', 'ja']);
     expect(idx(test, ['arr', 0])).toEqual(1);
     expect(idx(undefined)).toBeUndefined();
@@ -365,6 +318,7 @@ describe('load utils', () => {
     });
 
     expect(() =>
+      // @ts-expect-error undefined for test
       normalizeUrl(['http:example.com', undefined]),
     ).toThrowErrorMatchingInlineSnapshot(
       `"Url must be a string. Received undefined"`,
@@ -446,22 +400,6 @@ describe('removePrefix', () => {
   });
 });
 
-describe('getFilePathForRoutePath', () => {
-  test('works for /', () => {
-    expect(posixPath(getFilePathForRoutePath('/'))).toEqual('/index.html');
-  });
-  test('works for /somePath', () => {
-    expect(posixPath(getFilePathForRoutePath('/somePath'))).toEqual(
-      '/somePath/index.html',
-    );
-  });
-  test('works for /somePath/', () => {
-    expect(posixPath(getFilePathForRoutePath('/somePath/'))).toEqual(
-      '/somePath/index.html',
-    );
-  });
-});
-
 describe('getElementsAround', () => {
   test('can return elements around', () => {
     expect(getElementsAround(['a', 'b', 'c', 'd'], 0)).toEqual({
@@ -486,12 +424,12 @@ describe('getElementsAround', () => {
     expect(() =>
       getElementsAround(['a', 'b', 'c', 'd'], -1),
     ).toThrowErrorMatchingInlineSnapshot(
-      `"Valid aroundIndex for array (of size 4) are between 0 and 3, but you provided aroundIndex=-1"`,
+      `"Valid \\"aroundIndex\\" for array (of size 4) are between 0 and 3, but you provided -1."`,
     );
     expect(() =>
       getElementsAround(['a', 'b', 'c', 'd'], 4),
     ).toThrowErrorMatchingInlineSnapshot(
-      `"Valid aroundIndex for array (of size 4) are between 0 and 3, but you provided aroundIndex=4"`,
+      `"Valid \\"aroundIndex\\" for array (of size 4) are between 0 and 3, but you provided 4."`,
     );
   });
 });

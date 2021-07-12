@@ -24,8 +24,8 @@ export default function Seo({
 
   return (
     <Head>
-      <title>{pageTitle}</title>
-      <meta property="og:title" content={pageTitle} />
+      {title && <title>{pageTitle}</title>}
+      {title && <meta property="og:title" content={pageTitle} />}
 
       {description && <meta name="description" content={description} />}
       {description && <meta property="og:description" content={description} />}
@@ -41,7 +41,6 @@ export default function Seo({
 
       {pageImage && <meta property="og:image" content={pageImage} />}
       {pageImage && <meta name="twitter:image" content={pageImage} />}
-      {pageImage && <meta name="twitter:card" content="summary_large_image" />}
     </Head>
   );
 }

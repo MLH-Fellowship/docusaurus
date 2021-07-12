@@ -18,37 +18,34 @@ import initPlugins from '../server/plugins/init';
 import {normalizePluginOptions} from '@docusaurus/utils-validation';
 
 export function getPluginNames(plugins: PluginConfig[]): string[] {
-  return plugins.map((plugin) => {
-    const pluginPath = Array.isArray(plugin) ? plugin[0] : plugin;
-    let packagePath = path.dirname(pluginPath);
-    while (packagePath) {
-      if (fs.existsSync(path.join(packagePath, 'package.json'))) {
-        break;
-      } else {
-        packagePath = path.dirname(packagePath);
+  return plugins
+    .filter(
+      (plugin) =>
+        typeof plugin === 'string' ||
+        (Array.isArray(plugin) && typeof plugin[0] === 'string'),
+    )
+    .map((plugin) => {
+      const pluginPath = Array.isArray(plugin) ? plugin[0] : plugin;
+      if (typeof pluginPath === 'string') {
+        let packagePath = path.dirname(pluginPath);
+        while (packagePath) {
+          if (fs.existsSync(path.join(packagePath, 'package.json'))) {
+            break;
+          } else {
+            packagePath = path.dirname(packagePath);
+          }
+        }
+        if (packagePath === '.') {
+          return pluginPath;
+        }
+        return importFresh<{name: string}>(
+          path.join(packagePath, 'package.json'),
+        ).name;
       }
-    }
-    if (packagePath === '.') {
-      return pluginPath;
-    }
-    return importFresh<{name: string}>(path.join(packagePath, 'package.json'))
-      .name;
-  });
-}
 
-function walk(dir: string): Array<string> {
-  let results: Array<string> = [];
-  const list = fs.readdirSync(dir);
-  list.forEach((file: string) => {
-    const fullPath = path.join(dir, file);
-    const stat = fs.statSync(fullPath);
-    if (stat && stat.isDirectory()) {
-      results = results.concat(walk(fullPath));
-    } else if (!/node_modules|.css|.d.ts|.d.map/.test(fullPath)) {
-      results.push(fullPath);
-    }
-  });
-  return results;
+      return '';
+    })
+    .filter((plugin) => plugin !== '');
 }
 
 const formatComponentName = (componentName: string): string =>
@@ -57,6 +54,21 @@ const formatComponentName = (componentName: string): string =>
     .replace(/.(js|tsx|ts|jsx)/, '');
 
 function readComponent(themePath: string) {
+  function walk(dir: string): Array<string> {
+    let results: Array<string> = [];
+    const list = fs.readdirSync(dir);
+    list.forEach((file: string) => {
+      const fullPath = path.join(dir, file);
+      const stat = fs.statSync(fullPath);
+      if (stat && stat.isDirectory()) {
+        results = results.concat(walk(fullPath));
+      } else if (!/\.css|\.d\.ts|\.d\.map/.test(fullPath)) {
+        results.push(fullPath);
+      }
+    });
+    return results;
+  }
+
   return walk(themePath).map((filePath) =>
     formatComponentName(path.relative(themePath, filePath)),
   );
@@ -88,11 +100,11 @@ function themeComponents(
   const components = colorCode(themePath, plugin);
 
   if (components.length === 0) {
-    return `${chalk.red('No component to swizzle')}`;
+    return `${chalk.red('No component to swizzle.')}`;
   }
 
   return `
-${chalk.cyan('Theme components available for swizzle')}
+${chalk.cyan('Theme components available for swizzle.')}
 
 ${chalk.green('green  =>')} safe: lower breaking change risk
 ${chalk.red('red    =>')} unsafe: higher breaking change risk
@@ -102,7 +114,7 @@ ${components.join('\n')}
 }
 
 function formattedThemeNames(themeNames: string[]): string {
-  return `Themes available for swizzle:\n${themeNames.join('\n')}`;
+  return `Themes available for swizzle:\n- ${themeNames.join('\n- ')}`;
 }
 
 function colorCode(
@@ -178,7 +190,7 @@ export default async function swizzle(
   // find the plugin from list of plugin and get options if specified
   pluginConfigs.forEach((pluginConfig) => {
     // plugin can be a [string], [string,object] or string.
-    if (Array.isArray(pluginConfig)) {
+    if (Array.isArray(pluginConfig) && typeof pluginConfig[0] === 'string') {
       if (require.resolve(pluginConfig[0]) === resolvedThemeName) {
         if (pluginConfig.length === 2) {
           const [, options] = pluginConfig;
@@ -245,7 +257,7 @@ export default async function swizzle(
     if (mostSuitableMatch !== componentName) {
       mostSuitableComponent = mostSuitableMatch;
       console.log(
-        chalk.red(`Component "${componentName}" doesn't exists.`),
+        chalk.red(`Component "${componentName}" doesn't exist.`),
         chalk.yellow(
           `"${mostSuitableComponent}" is swizzled instead of "${componentName}".`,
         ),
@@ -284,7 +296,7 @@ export default async function swizzle(
   if (!components.includes(mostSuitableComponent) && !danger) {
     console.warn(
       chalk.red(
-        `${mostSuitableComponent} is an internal component, and have a higher breaking change probability. If you want to swizzle it, use the "--danger" flag.`,
+        `${mostSuitableComponent} is an internal component and has a higher breaking change probability. If you want to swizzle it, use the "--danger" flag.`,
       ),
     );
     process.exit(1);

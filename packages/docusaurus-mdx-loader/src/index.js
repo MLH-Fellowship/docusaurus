@@ -5,7 +5,6 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const {getOptions} = require('loader-utils');
 const {readFile} = require('fs-extra');
 const mdx = require('@mdx-js/mdx');
 const emoji = require('remark-emoji');
@@ -27,13 +26,13 @@ const DEFAULT_OPTIONS = {
 
 module.exports = async function docusaurusMdxLoader(fileString) {
   const callback = this.async();
-  const reqOptions = getOptions(this) || {};
+
+  const reqOptions = this.getOptions() || {};
 
   const {frontMatter, content: contentWithTitle} = parseFrontMatter(fileString);
 
-  // By default, will remove the markdown title from the content
-  const {content} = parseMarkdownContentTitle(contentWithTitle, {
-    keepContentTitle: reqOptions.keepContentTitle,
+  const {content, contentTitle} = parseMarkdownContentTitle(contentWithTitle, {
+    removeContentTitle: reqOptions.removeContentTitle,
   });
 
   const hasFrontMatter = Object.keys(frontMatter).length > 0;
@@ -69,7 +68,11 @@ module.exports = async function docusaurusMdxLoader(fileString) {
     return callback(err);
   }
 
-  let exportStr = `export const frontMatter = ${stringifyObject(frontMatter)};`;
+  let exportStr = ``;
+  exportStr += `\nexport const frontMatter = ${stringifyObject(frontMatter)};`;
+  exportStr += `\nexport const contentTitle = ${stringifyObject(
+    contentTitle,
+  )};`;
 
   // Read metadata for this MDX and export it.
   if (options.metadataPath && typeof options.metadataPath === 'function') {
